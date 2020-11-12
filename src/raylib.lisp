@@ -356,8 +356,8 @@
 
 (defmethod translate-into-foreign-memory (object (type rectangle-type) pointer)
   (with-foreign-slots ((x y width height) pointer (:struct %rectangle))
-                      (setf x (rectangle-x object))
-                      (setf y (rectangle-y object))
+                      (setf x (coerce (rectangle-x object) 'float))
+                      (setf y (coerce (rectangle-y object) 'float))
                       (setf width (rectangle-width object))
                       (setf height (rectangle-height object))))
 
@@ -1052,10 +1052,13 @@
  "Sound source type"
  (sample-count :unsigned-int)
  (stream (:struct %audio-stream)))
+
 (defmethod translate-into-foreign-memory (object (type sound-type) pointer)
  (with-foreign-slots ((sample-count stream) pointer (:struct %sound))
                       (setf sample-count (nth 0 object))
-                      (setf stream (nth 1 object))))
+                      (convert-into-foreign-memory (nth 1 object)
+                                                   '(:struct %audio-stream)
+                                                   (foreign-slot-pointer pointer '(:struct %sound) 'stream))))
 
 (defmethod translate-from-foreign (pointer (type sound-type))
   (with-foreign-slots ((sample-count stream) pointer (:struct %sound))
@@ -1086,7 +1089,9 @@
                       (setf ctx-data (nth 1 object))
                       (setf sample-count (nth 2 object))
                       (setf loop-count (nth 3 object))
-                      (setf stream (nth 4 object))))
+                      (convert-into-foreign-memory (nth 4 object)
+                                                   '(:struct %audio-stream)
+                                                   (foreign-slot-pointer pointer '(:struct %music) 'stream))))
 
 (defmethod translate-from-foreign (pointer (type music-type))
   (with-foreign-slots ((ctx-type ctx-data sample-count loop-count stream) pointer (:struct %music))
@@ -2526,7 +2531,8 @@
  (start-pos-x :int)
  (start-pos-y :int)
  (end-pos-x :int)
- (end-pos-y :int))
+ (end-pos-y :int)
+ (color (:struct %color)))
 
 ;;RLAPI void DrawLineV(Vector2 startPos, Vector2 endPos, Color color);                                     // Draw a line (Vector version)
 (defcfun "DrawLineV" :void
@@ -4195,6 +4201,10 @@
   (sound (:struct %sound)))
 
 ;;RLAPI void StopSound(Sound sound);                                    // Stop playing a sound
+(defcfun "StopSound" :void
+ "Stop playing a sound"
+ (sound (:struct %sound)))
+
 ;;RLAPI void PauseSound(Sound sound);                                   // Pause a sound
 (defcfun "PauseSound" :void
  "Pause a sound"
